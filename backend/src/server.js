@@ -23,6 +23,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Health
+app.get('/health', (req, res) => res.json({ ok: true }));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 // Routes
