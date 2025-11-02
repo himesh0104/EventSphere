@@ -4,6 +4,7 @@ import http from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import mongoose from 'mongoose';
 import { connectDB } from './utils/db.js';
 import authRoutes from './modules/auth/routes.js';
 import eventRoutes from './modules/events/routes.js';
@@ -75,7 +76,24 @@ app.get('/api', (req, res) =>
   })
 );
 
+// Ensure DB connection for serverless environments before protected routes
+const getMongoUri = () => process.env.MONGODB_URI || process.env.MONGO_URI;
+const ensureDb = async (_req, _res, next) => {
+  try {
+    const uri = getMongoUri();
+    if (!uri) return next();
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB(uri);
+    }
+    return next();
+  } catch (e) {
+    console.error('DB connect failed', e);
+    return next();
+  }
+};
+
 // Routes
+app.use(ensureDb);
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/chat', chatRoutes);
