@@ -37,15 +37,27 @@ app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
 // Start
 const start = async () => {
   try {
-    await connectDB(process.env.MONGODB_URI || process.env.MONGO_URI);
-    const { initSocket } = await import('./socket.js');
-    initSocket(server, CLIENT_URL);
-    server.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
+    // Attempt DB connect if URI present; do not crash if absent in serverless env
+    const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
+    if (uri) {
+      await connectDB(uri);
+    }
+    // Only start Socket.IO and listen when running as a long-lived server (not on Vercel serverless)
+    if (!process.env.VERCEL) {
+      const { initSocket } = await import('./socket.js');
+      initSocket(server, CLIENT_URL);
+      server.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
+    }
   } catch (e) {
     console.error('Failed to start server', e);
-    process.exit(1);
+    // Do not exit; allow serverless handler to still respond to health and simple routes
   }
 };
 
-start();
+// In local/dev, start the HTTP server. On Vercel, export the app for @vercel/node.
+if (!process.env.VERCEL) {
+  start();
+}
+
+export default app;
 
