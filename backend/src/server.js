@@ -14,7 +14,7 @@ const server = http.createServer(app);
 
 // Config
 const PORT = process.env.PORT || 4000;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const CLIENT_URL = process.env.CLIENT_URL || 'https://event-sphere11.vercel.app';
 
 // Middlewares
 app.use(helmet());
