@@ -14,17 +14,66 @@ const server = http.createServer(app);
 
 // Config
 const PORT = process.env.PORT || 4000;
-const CLIENT_URL = process.env.CLIENT_URL || 'https://event-sphere11.vercel.app';
+const RAW_CLIENT_URL = process.env.CLIENT_URL || 'https://event-sphere11.vercel.app';
+let CLIENT_URL = RAW_CLIENT_URL;
+try {
+  const u = new URL(RAW_CLIENT_URL);
+  CLIENT_URL = u.origin;
+} catch {
+  CLIENT_URL = RAW_CLIENT_URL.replace(/\/$/, '');
+}
+const ADDITIONAL_ORIGINS = (process.env.CORS_EXTRA_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const ALLOWED_ORIGINS = [
+  CLIENT_URL,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  ...ADDITIONAL_ORIGINS,
+].filter(Boolean);
 
 // Middlewares
 app.use(helmet());
-app.use(cors({ origin: CLIENT_URL, credentials: true }));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps, curl)
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(morgan('dev'));
 
 // Health
 app.get('/health', (req, res) => res.json({ ok: true }));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// Root info routes
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+app.get('/', (req, res) => {
+  const backendUrl = `${req.protocol}://${req.get('host')}`;
+  const frontendUrl = `${CLIENT_URL.replace(/\/$/, '')}/events`;
+  return res.json({
+    service: 'EventSphere API',
+    status: 'ok',
+    frontend: frontendUrl,
+    backend: backendUrl,
+    endpoints: ['/health', '/api/health', '/api/auth', '/api/events', '/api/chat'],
+  });
+});
+app.get('/api', (req, res) =>
+  res.json({
+    api: 'v1',
+    status: 'ok',
+    health: '/api/health',
+  })
+);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -45,7 +94,7 @@ const start = async () => {
     // Only start Socket.IO and listen when running as a long-lived server (not on Vercel serverless)
     if (!process.env.VERCEL) {
       const { initSocket } = await import('./socket.js');
-      initSocket(server, CLIENT_URL);
+      initSocket(server, ALLOWED_ORIGINS);
       server.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
     }
   } catch (e) {

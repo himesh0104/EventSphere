@@ -9,7 +9,11 @@ export default function ChatWidget({ roomId, username }: { roomId: string; usern
   const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const socket = io("https://event-sphere-plum.vercel.app", {
+    const SOCKET_URL =
+      (import.meta as any).env?.VITE_SOCKET_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : '') ||
+      "https://event-sphere-plum.vercel.app";
+    const socket = io(SOCKET_URL, {
       withCredentials: true,
     });
     socketRef.current = socket;

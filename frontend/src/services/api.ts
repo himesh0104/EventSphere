@@ -1,7 +1,12 @@
 import axios from "axios";
 
+const API_BASE =
+  (import.meta as any).env?.VITE_API_BASE_URL ||
+  "https://event-sphere-plum.vercel.app" ||
+  (typeof window !== 'undefined' ? window.location.origin : '');
+
 const api = axios.create({
-  baseURL: "https://event-sphere-plum.vercel.app",
+  baseURL: API_BASE,
 });
 
 api.interceptors.request.use((config) => {
