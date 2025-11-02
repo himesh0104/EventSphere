@@ -1,0 +1,26 @@
+# Node
+node_modules/
+**/node_modules/
+
+# Vite/Turbo
+frontend/dist/
+**/dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
+.env
+.env.*
+frontend/.env
+backend/.env
+
+# TypeScript
+**/*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
